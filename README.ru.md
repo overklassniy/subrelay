@@ -1,19 +1,21 @@
 # Subrelay
 
-[English](README.md) | [Русский](README.ru.md)
-
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%"
        alt="Subrelay: одна VLESS-подписка превращается в экземпляр sing-box-extended в системном трее с персональными SOCKS5/HTTP-портами для каждого узла и балансировщиками urltest для RU и не-RU групп. На диаграмме подписка поступает на загрузку и разбор, затем на планировщик портов, затем в сборщик sing-box, который разветвляется на RU и не-RU балансировщики и порты отдельных узлов.">
 </p>
 
 <p align="center">
-  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.26.4-00ADD8?logo=go&logoColor=white&style=flat" alt="Go 1.26.4"/></a>
-  <a href="https://github.com/shtorm-7/sing-box-extended"><img src="https://img.shields.io/badge/sing--box--extended-1.13.14-3C5AA0?style=flat" alt="sing-box-extended 1.13.14"/></a>
-  <a href="https://fyne.io"><img src="https://img.shields.io/badge/Fyne-2.8.1-6B8AC8?style=flat" alt="Fyne 2.8.1"/></a>
-  <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white&style=flat" alt="Windows"/>
-  <img src="https://img.shields.io/badge/platform-Linux-FCC624?logo=linux&logoColor=black&style=flat" alt="Linux"/>
-  <img src="https://img.shields.io/badge/protocol-VLESS-6B8AC8?style=flat" alt="VLESS"/>
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.26.4-00ADD8?logo=go&logoColor=white&style=flat-square" alt="Go 1.26.4"/></a>
+  <a href="https://github.com/shtorm-7/sing-box-extended"><img src="https://img.shields.io/badge/sing--box--extended-1.13.14-3C5AA0?style=flat-square" alt="sing-box-extended 1.13.14"/></a>
+  <a href="https://fyne.io"><img src="https://img.shields.io/badge/Fyne-2.8.1-6B8AC8?style=flat-square" alt="Fyne 2.8.1"/></a>
+  <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white&style=flat-square" alt="Windows"/>
+  <img src="https://img.shields.io/badge/platform-Linux-FCC624?logo=linux&logoColor=black&style=flat-square" alt="Linux"/>
+  <img src="https://img.shields.io/badge/protocol-VLESS-6B8AC8?style=flat-square" alt="VLESS"/>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> | <a href="README.ru.md">Русский</a>
 </p>
 
 Subrelay - это резидентное приложение в системном трее, которое
@@ -279,4 +281,12 @@ subrelay
 
 ## Лицензия
 
-Будет определена. Файл лицензии пока отсутствует.
+Subrelay распространяется под
+[Универсальной общественной лицензией GNU v3.0](LICENSE). Проект
+ссылается на
+[sing-box-extended](https://github.com/shtorm-7/sing-box-extended),
+который также использует GPLv3, поэтому та же лицензия применяется
+ко всей программе.
+
+Copyright (C) 2026 overklassniy. Эта программа распространяется без
+КАКИХ-ЛИБО ГАРАНТИЙ; подробности - в [лицензии](LICENSE).

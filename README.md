@@ -1,19 +1,21 @@
 # Subrelay
 
-[English](README.md) | [Русский](README.ru.md)
-
 <p align="center">
   <img src="./assets/readme/hero.svg" width="100%"
        alt="Subrelay: one VLESS subscription turned into a tray-resident sing-box-extended instance with per-node SOCKS5/HTTP ports and RU/non-RU urltest balancers. Diagram shows subscription feeding fetch and parse, then the port planner, then the sing-box builder, which branches into RU and non-RU balancers plus per-node inbounds.">
 </p>
 
 <p align="center">
-  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.26.4-00ADD8?logo=go&logoColor=white&style=flat" alt="Go 1.26.4"/></a>
-  <a href="https://github.com/shtorm-7/sing-box-extended"><img src="https://img.shields.io/badge/sing--box--extended-1.13.14-3C5AA0?style=flat" alt="sing-box-extended 1.13.14"/></a>
-  <a href="https://fyne.io"><img src="https://img.shields.io/badge/Fyne-2.8.1-6B8AC8?style=flat" alt="Fyne 2.8.1"/></a>
-  <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white&style=flat" alt="Windows"/>
-  <img src="https://img.shields.io/badge/platform-Linux-FCC624?logo=linux&logoColor=black&style=flat" alt="Linux"/>
-  <img src="https://img.shields.io/badge/protocol-VLESS-6B8AC8?style=flat" alt="VLESS"/>
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.26.4-00ADD8?logo=go&logoColor=white&style=flat-square" alt="Go 1.26.4"/></a>
+  <a href="https://github.com/shtorm-7/sing-box-extended"><img src="https://img.shields.io/badge/sing--box--extended-1.13.14-3C5AA0?style=flat-square" alt="sing-box-extended 1.13.14"/></a>
+  <a href="https://fyne.io"><img src="https://img.shields.io/badge/Fyne-2.8.1-6B8AC8?style=flat-square" alt="Fyne 2.8.1"/></a>
+  <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white&style=flat-square" alt="Windows"/>
+  <img src="https://img.shields.io/badge/platform-Linux-FCC624?logo=linux&logoColor=black&style=flat-square" alt="Linux"/>
+  <img src="https://img.shields.io/badge/protocol-VLESS-6B8AC8?style=flat-square" alt="VLESS"/>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> | <a href="README.ru.md">Русский</a>
 </p>
 
 Subrelay is a tray-resident desktop application that turns a single
@@ -272,4 +274,12 @@ Contributions are welcome. Before submitting a change:
 
 ## License
 
-To be determined. No license file is present yet.
+Subrelay is licensed under the
+[GNU General Public License v3.0](LICENSE). The project links
+[sing-box-extended](https://github.com/shtorm-7/sing-box-extended),
+which is also GPLv3, so the same license applies to the whole
+program.
+
+Copyright (C) 2026 overklassniy. This program comes with
+ABSOLUTELY NO WARRANTY; see the
+[license](LICENSE) for details.
