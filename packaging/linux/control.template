@@ -1,0 +1,14 @@
+Package: subrelay
+Version: __VERSION__
+Architecture: __ARCH__
+Maintainer: overklassniy <overklassniy@users.noreply.github.com>
+Installed-Size: __INSTALLED_SIZE__
+Depends: libgl1, libegl1, libxkbcommon0
+Section: net
+Priority: optional
+Homepage: https://github.com/overklassniy/subrelay
+Description: Subscription-based proxy balancer with system tray control
+ Subrelay fetches VLESS subscription nodes, builds sing-box
+ configurations, and exposes per-node and balancer SOCKS5/HTTP
+ inbounds on localhost. The application runs as a system tray
+ icon with settings, nodes, and log viewer windows.

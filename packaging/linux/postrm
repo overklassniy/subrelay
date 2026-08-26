@@ -1,0 +1,13 @@
+#!/bin/sh
+# Post-removal script for the subrelay .deb package.
+# Updates the desktop database after the application has been
+# removed so stale menu entries are cleaned up.
+set -e
+
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications || true
+fi
+
+#DEBHELPER#
+
+exit 0

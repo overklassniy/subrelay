@@ -1,0 +1,143 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "mkdir: build",
+      "detail": "Create the build output directory",
+      "type": "shell",
+      "command": "New-Item -ItemType Directory -Force -Path build | Out-Null",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "silent", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "build: windows",
+      "detail": "Build build/subrelay.exe with CGO + Fyne + sing-box tags",
+      "type": "shell",
+      "command": "go",
+      "args": [
+        "build",
+        "-tags", "with_utls,with_grpc,with_quic",
+        "-ldflags", "-H windowsgui -s -w",
+        "-o", "build/subrelay.exe",
+        "./cmd/subrelay"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "CGO_ENABLED": "1",
+          "CGO_CFLAGS": "-O2 -Wall -Wno-unused-function -Wno-unused-variable",
+          "Path": "C:\\ProgramData\\mingw64\\mingw64\\bin;${env:Path}"
+        }
+      },
+      "dependsOn": "mkdir: build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$go"],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "build: linux",
+      "detail": "Build subrelay binary for Linux (no windowsgui flag)",
+      "type": "shell",
+      "command": "CGO_ENABLED=1 go build -tags \"with_utls,with_grpc,with_quic\" -ldflags \"-s -w\" -o build/subrelay ./cmd/subrelay",
+      "options": { "cwd": "${workspaceFolder}" },
+      "dependsOn": "mkdir: build",
+      "group": "build",
+      "problemMatcher": ["$go"],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "build: packages",
+      "detail": "Build all internal packages (no CGO required)",
+      "type": "shell",
+      "command": "go build ./internal/...",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "problemMatcher": ["$go"],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "vet",
+      "detail": "Run go vet on all packages",
+      "type": "shell",
+      "command": "go vet ./...",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "CGO_ENABLED": "1",
+          "Path": "C:\\ProgramData\\mingw64\\mingw64\\bin;${env:Path}"
+        }
+      },
+      "group": "test",
+      "problemMatcher": ["$go"],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "test",
+      "detail": "Run go test on all packages",
+      "type": "shell",
+      "command": "go test ./...",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "CGO_ENABLED": "1",
+          "Path": "C:\\ProgramData\\mingw64\\mingw64\\bin;${env:Path}"
+        }
+      },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$go"],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "fmt",
+      "detail": "Check formatting with gofmt",
+      "type": "shell",
+      "command": "gofmt -l .",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "fmt: write",
+      "detail": "Apply gofmt to all Go files",
+      "type": "shell",
+      "command": "gofmt -w .",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "tidy",
+      "detail": "Run go mod tidy",
+      "type": "shell",
+      "command": "go mod tidy",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "icon",
+      "detail": "Generate Windows .exe icon resource (.syso) from tray PNG",
+      "type": "shell",
+      "command": "go run make_icon.go",
+      "options": {
+        "cwd": "${workspaceFolder}/cmd/subrelay",
+        "env": {
+          "Path": "C:\\ProgramData\\mingw64\\mingw64\\bin;${env:Path}"
+        }
+      },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "run",
+      "detail": "Run build/subrelay.exe after building",
+      "type": "shell",
+      "command": "${workspaceFolder}/build/subrelay.exe",
+      "dependsOn": "build: windows",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ]
+}

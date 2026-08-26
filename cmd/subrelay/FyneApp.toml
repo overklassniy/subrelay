@@ -1,0 +1,14 @@
+Website = "https://github.com/overklassniy/subrelay"
+
+[Details]
+Icon = "../../internal/tray/icon.png"
+Name = "Subrelay"
+ID = "com.subrelay.app"
+Version = "1.0.0"
+Build = 1
+
+[LinuxAndBSD]
+GenericName = "Proxy Balancer"
+Categories = ["Network", "P2P"]
+Comment = "Subscription-based proxy balancer with system tray control"
+Keywords = ["proxy", "vless", "sing-box", "balancer"]

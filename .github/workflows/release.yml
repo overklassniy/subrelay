@@ -1,0 +1,290 @@
+# Release workflow that builds subrelay for all supported Windows and
+# Linux architectures and publishes distributable artifacts.
+#
+# Windows targets produce .exe files (zipped) with the embedded icon.
+# Linux targets produce .deb, .rpm, and .tar.gz packages.
+#
+# The workflow runs on tag pushes matching "v*" and on manual dispatch.
+# On tag pushes, a GitHub Release is created with all artifacts attached.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version without v prefix (e.g. 1.0.0)'
+        required: true
+        default: '0.0.0-dev'
+      create_release:
+        description: 'Create a GitHub release'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  # Build tags required by the sing-box extended fork.
+  BUILD_TAGS: with_utls,with_grpc,with_quic
+
+jobs:
+  # -----------------------------------------------------------------
+  # Windows builds: cross-compiled from ubuntu-latest using MinGW.
+  # Produces subrelay-<version>-windows-<arch>.zip containing the .exe.
+  # -----------------------------------------------------------------
+  build-windows:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goarch: amd64
+            mingw_prefix: x86_64-w64-mingw32
+            deb_arch: amd64
+          - goarch: arm64
+            mingw_prefix: aarch64-w64-mingw32
+            deb_arch: arm64
+          - goarch: '386'
+            mingw_prefix: i686-w64-mingw32
+            deb_arch: i386
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install MinGW cross-compilers
+        run: |
+          sudo apt-get update
+          # Install the meta-package that includes x86-64, i686,
+          # and arm64 MinGW cross-compilers and binutils.
+          sudo apt-get install -y \
+            gcc-mingw-w64 \
+            binutils-mingw-w64
+
+      - name: Generate Windows icon resource for target architecture
+        working-directory: cmd/subrelay
+        run: |
+          # Remove the pre-built .syso (built for amd64) and
+          # regenerate it for the target architecture so the COFF
+          # machine type matches the linker's expectation.
+          rm -f resource.syso
+          ${{ matrix.mingw_prefix }}-windres \
+            --target=${{ matrix.mingw_prefix }} \
+            -O coff \
+            -o resource.syso \
+            resource.rc
+          echo "Generated resource.syso for ${{ matrix.mingw_prefix }}"
+
+      - name: Build Windows binary
+        env:
+          GOOS: windows
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '1'
+          CC: ${{ matrix.mingw_prefix }}-gcc
+          CXX: ${{ matrix.mingw_prefix }}-g++
+        run: |
+          mkdir -p build
+          go build \
+            -tags "${BUILD_TAGS}" \
+            -ldflags "-H windowsgui -s -w -X subrelay/internal/update.CurrentVersion=${{ steps.version.outputs.version }}" \
+            -o "build/subrelay-${{ steps.version.outputs.version }}-windows-${{ matrix.goarch }}.exe" \
+            ./cmd/subrelay
+
+      - name: Zip Windows artifact
+        run: |
+          cd build
+          zip -j "subrelay-${{ steps.version.outputs.version }}-windows-${{ matrix.goarch }}.zip" \
+            "subrelay-${{ steps.version.outputs.version }}-windows-${{ matrix.goarch }}.exe"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: subrelay-windows-${{ matrix.goarch }}
+          path: build/subrelay-*.zip
+          if-no-files-found: error
+
+  # -----------------------------------------------------------------
+  # Linux builds: native (amd64) or cross-compiled using gcc
+  # cross-toolchains and multiarch dev libraries.
+  # Produces .deb, .rpm, and .tar.gz for each architecture.
+  # -----------------------------------------------------------------
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goarch: amd64
+            goarm: ''
+            cc: gcc
+            cgo_cflags: ''
+            cgo_ldflags: ''
+            pkg_config_path: ''
+            apt_arch: ''
+            apt_packages: ''
+            deb_arch: amd64
+          - goarch: arm64
+            goarm: ''
+            cc: aarch64-linux-gnu-gcc
+            cgo_cflags: ''
+            cgo_ldflags: ''
+            pkg_config_path: /usr/lib/aarch64-linux-gnu/pkgconfig
+            apt_arch: arm64
+            apt_packages: gcc-aarch64-linux-gnu
+            deb_arch: arm64
+          - goarch: arm
+            goarm: '7'
+            cc: arm-linux-gnueabihf-gcc
+            cgo_cflags: ''
+            cgo_ldflags: ''
+            pkg_config_path: /usr/lib/arm-linux-gnueabihf/pkgconfig
+            apt_arch: armhf
+            apt_packages: gcc-arm-linux-gnueabihf
+            deb_arch: armhf
+          - goarch: '386'
+            goarm: ''
+            cc: gcc
+            cgo_cflags: '-m32'
+            cgo_ldflags: '-m32'
+            pkg_config_path: /usr/lib/i386-linux-gnu/pkgconfig
+            apt_arch: i386
+            apt_packages: gcc-multilib
+            deb_arch: i386
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgl1-mesa-dev libegl1-mesa-dev \
+            libxkbcommon-dev libwayland-dev \
+            xorg-dev \
+            dpkg-dev rpm
+
+      - name: Install cross-compiler and multiarch libraries
+        if: matrix.apt_arch != ''
+        run: |
+          sudo dpkg --add-architecture ${{ matrix.apt_arch }}
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.apt_packages }}
+          sudo apt-get install -y \
+            libgl1-mesa-dev:${{ matrix.apt_arch }} \
+            libegl1-mesa-dev:${{ matrix.apt_arch }} \
+            libxkbcommon-dev:${{ matrix.apt_arch }} \
+            libwayland-dev:${{ matrix.apt_arch }} \
+            libx11-dev:${{ matrix.apt_arch }} \
+            libxcursor-dev:${{ matrix.apt_arch }} \
+            libxrandr-dev:${{ matrix.apt_arch }} \
+            libxinerama-dev:${{ matrix.apt_arch }} \
+            libxi-dev:${{ matrix.apt_arch }} \
+            libxxf86vm-dev:${{ matrix.apt_arch }}
+
+      - name: Install fpm for .rpm packaging
+        run: |
+          sudo gem install fpm --no-document
+
+      - name: Build Linux binary
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+          CGO_ENABLED: '1'
+          CC: ${{ matrix.cc }}
+          CGO_CFLAGS: ${{ matrix.cgo_cflags }}
+          CGO_LDFLAGS: ${{ matrix.cgo_ldflags }}
+          PKG_CONFIG_PATH: ${{ matrix.pkg_config_path }}
+        run: |
+          mkdir -p build
+          go build \
+            -tags "${BUILD_TAGS}" \
+            -ldflags "-s -w -X subrelay/internal/update.CurrentVersion=${{ steps.version.outputs.version }}" \
+            -o "build/subrelay-${{ steps.version.outputs.version }}-linux-${{ matrix.goarch }}" \
+            ./cmd/subrelay
+
+      - name: Package Linux artifacts
+        run: |
+          chmod +x packaging/package-linux.sh
+          packaging/package-linux.sh \
+            "build/subrelay-${{ steps.version.outputs.version }}-linux-${{ matrix.goarch }}" \
+            "${{ steps.version.outputs.version }}" \
+            "${{ matrix.deb_arch }}" \
+            "build"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: subrelay-linux-${{ matrix.goarch }}
+          path: |
+            build/subrelay-*.deb
+            build/subrelay-*.rpm
+            build/subrelay-*.tar.gz
+          if-no-files-found: error
+
+  # -----------------------------------------------------------------
+  # Release job: collects all artifacts and creates a GitHub Release.
+  # Only runs on tag pushes or when explicitly requested via
+  # workflow_dispatch with create_release=true.
+  # -----------------------------------------------------------------
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.create_release)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: List artifacts
+        run: find artifacts -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          name: Subrelay ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            artifacts/subrelay-*.zip
+            artifacts/subrelay-*.deb
+            artifacts/subrelay-*.rpm
+            artifacts/subrelay-*.tar.gz

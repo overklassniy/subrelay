@@ -1,0 +1,7 @@
+# Build output
+/build/
+/dist/
+
+# Go toolchain artifacts
+*.out
+coverage.txt

@@ -1,0 +1,15 @@
+# Ensure shell scripts always use LF line endings, even when the
+# repository is checked out on Windows with core.autocrlf=true.
+*.sh text eol=lf
+*.desktop text eol=lf
+postinst text eol=lf
+postrm text eol=lf
+
+# Ensure Windows batch files use CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files should not be modified.
+*.png binary
+*.ico binary
+*.syso binary

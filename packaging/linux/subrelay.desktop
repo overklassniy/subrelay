@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Subrelay
+GenericName=Proxy Balancer
+Comment=Subscription-based proxy balancer with system tray control
+Icon=subrelay
+Exec=subrelay
+Terminal=false
+Categories=Network;P2P;
+Keywords=proxy;vless;sing-box;balancer;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
