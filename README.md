@@ -7,6 +7,15 @@
        alt="Subrelay: one VLESS subscription turned into a tray-resident sing-box-extended instance with per-node SOCKS5/HTTP ports and RU/non-RU urltest balancers. Diagram shows subscription feeding fetch and parse, then the port planner, then the sing-box builder, which branches into RU and non-RU balancers plus per-node inbounds.">
 </p>
 
+<p align="center">
+  <a href="https://go.dev"><img src="https://img.shields.io/badge/Go-1.26.4-00ADD8?logo=go&logoColor=white&style=flat" alt="Go 1.26.4"/></a>
+  <a href="https://github.com/shtorm-7/sing-box-extended"><img src="https://img.shields.io/badge/sing--box--extended-1.13.14-3C5AA0?style=flat" alt="sing-box-extended 1.13.14"/></a>
+  <a href="https://fyne.io"><img src="https://img.shields.io/badge/Fyne-2.8.1-6B8AC8?style=flat" alt="Fyne 2.8.1"/></a>
+  <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white&style=flat" alt="Windows"/>
+  <img src="https://img.shields.io/badge/platform-Linux-FCC624?logo=linux&logoColor=black&style=flat" alt="Linux"/>
+  <img src="https://img.shields.io/badge/protocol-VLESS-6B8AC8?style=flat" alt="VLESS"/>
+</p>
+
 Subrelay is a tray-resident desktop application that turns a single
 VLESS subscription into a local sing-box-extended instance with stable per-node
 SOCKS5/HTTP ports and RU/non-RU urltest balancers. It runs on Windows
@@ -222,7 +231,7 @@ overhead in latency measurements and prevents SNI-based DPI blocking.
 | `linux/386` | `gcc -m32` |
 | `windows/amd64` | `x86_64-w64-mingw32-gcc` |
 | `windows/386` | `i686-w64-mingw32-gcc` |
-| `windows/arm64` | `aarch64-w64-mingw32-gcc` |
+| `windows/arm64` | `zig cc -target aarch64-windows-gnu` |
 
 ## Project structure
 

@@ -32,7 +32,13 @@ machine.
 | linux/386       | gcc -m32                    | gcc-multilib                               |
 | windows/amd64   | x86_64-w64-mingw32-gcc      | gcc-mingw-w64-x86-64                       |
 | windows/386     | i686-w64-mingw32-gcc        | gcc-mingw-w64-i686                         |
-| windows/arm64   | aarch64-w64-mingw32-gcc     | gcc-mingw-w64-arm64                        |
+| windows/arm64   | zig cc -target aarch64-windows-gnu | zig (from ziglang.org)              |
+
+Ubuntu does not ship an aarch64-w64-mingw32 MinGW toolchain, so the
+windows/arm64 target uses Zig as a drop-in C cross-compiler instead.
+Install Zig from <https://ziglang.org/download/> and ensure the `zig`
+binary is on PATH. The arm64 Windows build ships without a custom
+Explorer icon since no windres equivalent is available for Zig.
 
 ## Usage examples
 

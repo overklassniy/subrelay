@@ -46,12 +46,16 @@ jobs:
           - goarch: amd64
             mingw_prefix: x86_64-w64-mingw32
             deb_arch: amd64
+            use_zig: false
           - goarch: arm64
             mingw_prefix: aarch64-w64-mingw32
             deb_arch: arm64
+            use_zig: true
+            zig_target: aarch64-windows-gnu
           - goarch: '386'
             mingw_prefix: i686-w64-mingw32
             deb_arch: i386
+            use_zig: false
     steps:
       - uses: actions/checkout@v4
 
@@ -69,15 +73,29 @@ jobs:
           fi
 
       - name: Install MinGW cross-compilers
+        if: matrix.use_zig != true
         run: |
           sudo apt-get update
-          # Install the meta-package that includes x86-64, i686,
-          # and arm64 MinGW cross-compilers and binutils.
+          # Install the specific MinGW cross-compiler and binutils
+          # for the target architecture. Ubuntu's gcc-mingw-w64
+          # meta-package only includes x86-64 and i686 targets.
           sudo apt-get install -y \
-            gcc-mingw-w64 \
-            binutils-mingw-w64
+            gcc-mingw-w64-${{ matrix.mingw_prefix == 'x86_64-w64-mingw32' && 'x86-64' || 'i686' }} \
+            binutils-mingw-w64-${{ matrix.mingw_prefix == 'x86_64-w64-mingw32' && 'x86-64' || 'i686' }}
+
+      - name: Install Zig for Windows arm64 cross-compilation
+        if: matrix.use_zig == true
+        run: |
+          # Ubuntu does not ship an aarch64-w64-mingw32 MinGW
+          # toolchain. Use Zig as the C cross-compiler instead.
+          ZIG_VERSION="0.16.0"
+          curl -fsSL "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" \
+            -o /tmp/zig.tar.xz
+          tar -xf /tmp/zig.tar.xz -C /tmp
+          echo "/tmp/zig-x86_64-linux-${ZIG_VERSION}" >> "$GITHUB_PATH"
 
       - name: Generate Windows icon resource for target architecture
+        if: matrix.use_zig != true
         working-directory: cmd/subrelay
         run: |
           # Remove the pre-built .syso (built for amd64) and
@@ -91,13 +109,23 @@ jobs:
             resource.rc
           echo "Generated resource.syso for ${{ matrix.mingw_prefix }}"
 
+      - name: Remove pre-built resource.syso for Zig-based builds
+        if: matrix.use_zig == true
+        working-directory: cmd/subrelay
+        run: |
+          # The committed resource.syso targets amd64 Windows.
+          # Remove it so Go does not link an incompatible object
+          # into the arm64 binary. The arm64 build ships without
+          # a custom Explorer icon.
+          rm -f resource.syso
+
       - name: Build Windows binary
         env:
           GOOS: windows
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: '1'
-          CC: ${{ matrix.mingw_prefix }}-gcc
-          CXX: ${{ matrix.mingw_prefix }}-g++
+          CC: ${{ matrix.use_zig == true && format('zig cc -target {0}', matrix.zig_target) || format('{0}-gcc', matrix.mingw_prefix) }}
+          CXX: ${{ matrix.use_zig == true && format('zig c++ -target {0}', matrix.zig_target) || format('{0}-g++', matrix.mingw_prefix) }}
         run: |
           mkdir -p build
           go build \
@@ -137,6 +165,7 @@ jobs:
             pkg_config_path: ''
             apt_arch: ''
             apt_packages: ''
+            apt_ports: false
             deb_arch: amd64
           - goarch: arm64
             goarm: ''
@@ -146,6 +175,7 @@ jobs:
             pkg_config_path: /usr/lib/aarch64-linux-gnu/pkgconfig
             apt_arch: arm64
             apt_packages: gcc-aarch64-linux-gnu
+            apt_ports: true
             deb_arch: arm64
           - goarch: arm
             goarm: '7'
@@ -155,6 +185,7 @@ jobs:
             pkg_config_path: /usr/lib/arm-linux-gnueabihf/pkgconfig
             apt_arch: armhf
             apt_packages: gcc-arm-linux-gnueabihf
+            apt_ports: true
             deb_arch: armhf
           - goarch: '386'
             goarm: ''
@@ -164,6 +195,7 @@ jobs:
             pkg_config_path: /usr/lib/i386-linux-gnu/pkgconfig
             apt_arch: i386
             apt_packages: gcc-multilib
+            apt_ports: false
             deb_arch: i386
     steps:
       - uses: actions/checkout@v4
@@ -194,6 +226,37 @@ jobs:
         if: matrix.apt_arch != ''
         run: |
           sudo dpkg --add-architecture ${{ matrix.apt_arch }}
+
+          # On Ubuntu 24.04 the default apt sources only carry amd64
+          # and i386 packages. For arm64 and armhf the package indices
+          # must be fetched from ports.ubuntu.com instead.
+          if [[ "${{ matrix.apt_ports }}" == "true" ]]; then
+            # Restrict existing sources to amd64 so apt-get update
+            # does not 404 on the foreign architecture. Add the
+            # Architectures field to every stanza in the deb822
+            # formatted sources file.
+            if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
+              sudo sed -i '/^Architectures:/d' /etc/apt/sources.list.d/ubuntu.sources
+              sudo sed -i '/^Types: deb/a Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
+            fi
+            # Add ports.ubuntu.com sources for the foreign arch.
+            sudo tee /etc/apt/sources.list.d/ports.sources > /dev/null <<EOF
+          Types: deb
+          Architectures: ${{ matrix.apt_arch }}
+          URIs: http://ports.ubuntu.com/ubuntu-ports/
+          Suites: noble noble-updates noble-backports
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          Architectures: ${{ matrix.apt_arch }}
+          URIs: http://ports.ubuntu.com/ubuntu-ports/
+          Suites: noble-security
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
+          fi
+
           sudo apt-get update
           sudo apt-get install -y ${{ matrix.apt_packages }}
           sudo apt-get install -y \
@@ -207,6 +270,15 @@ jobs:
             libxinerama-dev:${{ matrix.apt_arch }} \
             libxi-dev:${{ matrix.apt_arch }} \
             libxxf86vm-dev:${{ matrix.apt_arch }}
+
+      - name: Remove Windows resource file before Linux build
+        working-directory: cmd/subrelay
+        run: |
+          # The committed resource.syso is an amd64 Windows COFF
+          # object. Go automatically links .syso files found in the
+          # package directory. On non-amd64 targets this causes an
+          # architecture mismatch at link time, so remove it.
+          rm -f resource.syso
 
       - name: Install fpm for .rpm packaging
         run: |

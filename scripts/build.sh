@@ -76,7 +76,9 @@ case "${goos}/${goarch}" in
         mingw_prefix="i686-w64-mingw32"
         ;;
     windows/arm64)
-        cc="aarch64-w64-mingw32-gcc"
+        cc="zig cc -target aarch64-windows-gnu"
+        cxx="zig c++ -target aarch64-windows-gnu"
+        use_zig=true
         mingw_prefix="aarch64-w64-mingw32"
         ;;
     *)
@@ -98,7 +100,7 @@ export CGO_ENABLED=1
 export GOOS="$goos"
 export GOARCH="$goarch"
 export CC="$cc"
-export CXX="${cc/gcc/g++}"
+export CXX="${cxx:-${cc/gcc/g++}}"
 [[ -n "${goarm:-}" ]] && export GOARM="$goarm"
 
 # Assemble ldflags: strip debug symbols, inject version, and hide
@@ -108,9 +110,16 @@ if [[ "$goos" == "windows" ]]; then
     ldflags="-H windowsgui ${ldflags}"
 fi
 
-# For Windows, regenerate the icon resource for the target arch.
+# For Windows builds using MinGW, regenerate the icon resource for
+# the target arch. For Zig-based builds (arm64), remove the pre-built
+# .syso since it targets amd64 and no windres equivalent is available.
+# For Linux builds, remove the .syso to avoid architecture mismatch
+# at link time (Go links .syso files unconditionally).
 if [[ "$goos" == "windows" ]]; then
-    if command -v "${mingw_prefix}-windres" >/dev/null 2>&1; then
+    if [[ "${use_zig:-false}" == "true" ]]; then
+        echo ">> Removing pre-built resource.syso for Zig-based build"
+        rm -f cmd/subrelay/resource.syso
+    elif command -v "${mingw_prefix}-windres" >/dev/null 2>&1; then
         echo ">> Generating icon resource for ${mingw_prefix}"
         (cd cmd/subrelay && rm -f resource.syso && \
             "${mingw_prefix}-windres" --target="${mingw_prefix}" -O coff \
@@ -118,6 +127,8 @@ if [[ "$goos" == "windows" ]]; then
     else
         echo "warning: ${mingw_prefix}-windres not found, using existing .syso" >&2
     fi
+elif [[ "$goos" == "linux" ]]; then
+    rm -f cmd/subrelay/resource.syso
 fi
 
 # Determine output filename and extension.

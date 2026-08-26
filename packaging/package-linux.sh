@@ -32,7 +32,7 @@ deb_arch="${3:?usage: package-linux.sh <binary> <version> <deb-arch> <output-dir
 output_dir="${4:?usage: package-linux.sh <binary> <version> <deb-arch> <output-dir>}"
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
-project_root="$(cd "$script_dir/../.." && pwd)"
+project_root="$(cd "$script_dir/.." && pwd)"
 icon_source="$project_root/internal/tray/icon.png"
 desktop_source="$script_dir/linux/subrelay.desktop"
 control_template="$script_dir/linux/control.template"
